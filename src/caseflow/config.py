@@ -22,11 +22,17 @@ class Settings(BaseSettings):
     max_agent_turns: int = Field(default=12, ge=1, le=50)
     log_level: str = "INFO"
     enable_web_search: bool = True
+    auto_create_schema: bool = True
 
     @model_validator(mode="after")
-    def production_requires_secrets(self) -> "Settings":
-        if self.environment == "production" and not self.api_key:
-            raise ValueError("CASEFLOW_API_KEY is required in production")
+    def validate_production(self) -> "Settings":
+        if self.environment == "production":
+            if not self.api_key:
+                raise ValueError("CASEFLOW_API_KEY is required in production")
+            if self.auto_create_schema:
+                raise ValueError(
+                    "CASEFLOW_AUTO_CREATE_SCHEMA must be false in production; use Alembic"
+                )
         return self
 
 

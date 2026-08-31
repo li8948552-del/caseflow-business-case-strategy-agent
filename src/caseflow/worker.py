@@ -15,7 +15,8 @@ log = structlog.get_logger()
 async def run_worker() -> None:
     settings = get_settings()
     configure_logging(settings.log_level)
-    await init_db()
+    if settings.auto_create_schema:
+        await init_db()
     runtime = OpenAIAgentRuntime(settings)
     log.info("worker_started")
     while True:

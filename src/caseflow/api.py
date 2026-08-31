@@ -13,11 +13,7 @@ from caseflow.db import get_session, init_db
 from caseflow.domain import AIPolicy, CaseView, GateDecision, JobView
 from caseflow.errors import CaseBusyError, InvalidTransitionError, PolicyViolationError
 from caseflow.logging import configure_logging
-from caseflow.repository import (
-    CaseNotFoundError,
-    CaseRepository,
-    JobNotFoundError,
-)
+from caseflow.repository import CaseNotFoundError, CaseRepository, JobNotFoundError
 from caseflow.runtime import OpenAIAgentRuntime
 from caseflow.security import require_api_key
 from caseflow.service import CaseService
@@ -27,7 +23,8 @@ from caseflow.service import CaseService
 async def lifespan(_: FastAPI) -> AsyncIterator[None]:
     settings = get_settings()
     configure_logging(settings.log_level)
-    await init_db()
+    if settings.auto_create_schema:
+        await init_db()
     yield
 
 
