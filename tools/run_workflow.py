@@ -81,7 +81,7 @@ def set_gate(number: int, approved: bool, approved_by: str) -> int:
         r"    approved_at: .*\n",
         re.MULTILINE,
     )
-    now = dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds")
+    now = dt.datetime.now(dt.UTC).isoformat(timespec="seconds")
     value = "true" if approved else "false"
     replacement = (
         rf'\1    approved: {value}\n'
