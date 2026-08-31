@@ -1,9 +1,13 @@
 __pycache__/
 *.pyc
 .DS_Store
+.venv/
+.env
+*.db
+.pytest_cache/
+.ruff_cache/
 inputs/case-brief/*
 !inputs/case-brief/.gitkeep
 deliverables/*.pptx
 deliverables/*.pdf
 deliverables/*.xlsx
-

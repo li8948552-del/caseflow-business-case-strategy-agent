@@ -1,0 +1,52 @@
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: caseflow
+      POSTGRES_USER: caseflow
+      POSTGRES_PASSWORD: caseflow-local
+    volumes:
+      - caseflow_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U caseflow"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  migrate:
+    build: .
+    command: ["alembic", "upgrade", "head"]
+    environment: &caseflow-env
+      CASEFLOW_ENVIRONMENT: production
+      CASEFLOW_DATABASE_URL: postgresql+asyncpg://caseflow:caseflow-local@db:5432/caseflow
+      CASEFLOW_API_KEY: change-me-before-deploying
+      CASEFLOW_AUTO_CREATE_SCHEMA: "false"
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+    depends_on:
+      db:
+        condition: service_healthy
+
+  api:
+    build: .
+    environment: *caseflow-env
+    ports:
+      - "8000:8000"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health/live')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  worker:
+    build: .
+    command: ["python", "-m", "caseflow.worker"]
+    environment: *caseflow-env
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+volumes:
+  caseflow_pgdata:

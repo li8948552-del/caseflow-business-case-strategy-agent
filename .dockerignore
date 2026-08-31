@@ -1,0 +1,9 @@
+.git
+.github
+.venv
+__pycache__
+*.pyc
+*.db
+.env
+inputs/case-brief
+deliverables
