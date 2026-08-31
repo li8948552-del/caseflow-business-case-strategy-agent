@@ -4,7 +4,7 @@ from typing import Any
 
 import structlog
 
-from caseflow.domain import AIPolicy, CaseView, GateDecision, RunStage
+from caseflow.domain import AIPolicy, CaseView, GateDecision, JobView, RunStage
 from caseflow.errors import CaseBusyError, InvalidTransitionError, PolicyViolationError
 from caseflow.repository import CaseRepository
 from caseflow.runtime import AgentRuntime
@@ -13,6 +13,8 @@ log = structlog.get_logger()
 
 BUSY_STAGES = {
     RunStage.FRAMING,
+    RunStage.RESEARCHING,
+    RunStage.STRATEGIZING,
     RunStage.BUILDING,
     RunStage.DEFENDING,
 }
@@ -44,6 +46,22 @@ class CaseService:
     async def get(self, case_id: str) -> CaseView:
         return self.repository.to_view(await self.repository.get(case_id))
 
+    async def enqueue(self, case_id: str) -> JobView:
+        record = await self.repository.get(case_id)
+        stage = RunStage(record.stage)
+        runnable = {
+            RunStage.CREATED,
+            RunStage.RESEARCH_READY,
+            RunStage.STRATEGY_READY,
+            RunStage.BUILD_READY,
+            RunStage.DEFENSE_READY,
+        }
+        if stage not in runnable:
+            raise InvalidTransitionError(
+                f"Stage {stage.value} cannot run; a gate decision or existing job may block it"
+            )
+        return self.repository.job_to_view(await self.repository.enqueue_job(case_id))
+
     async def advance(self, case_id: str) -> CaseView:
         record = await self.repository.get(case_id)
         stage = RunStage(record.stage)
@@ -51,7 +69,7 @@ class CaseService:
             raise CaseBusyError(f"Case is already processing stage: {stage.value}")
         try:
             if stage == RunStage.CREATED:
-                await self.repository.save(record, stage=RunStage.FRAMING)
+                record = await self.repository.save(record, stage=RunStage.FRAMING)
                 output = await self.runtime.frame(record.source_text)
                 await self.repository.audit(case_id, "agent.framed", {})
                 record = await self.repository.save(
@@ -60,7 +78,8 @@ class CaseService:
                     artifact_name="frame",
                     artifact=output.model_dump(mode="json"),
                 )
-            elif stage == RunStage.RESEARCHING:
+            elif stage == RunStage.RESEARCH_READY:
+                record = await self.repository.save(record, stage=RunStage.RESEARCHING)
                 output = await self.runtime.research(
                     record.source_text,
                     record.artifacts["frame"],
@@ -68,11 +87,12 @@ class CaseService:
                 await self.repository.audit(case_id, "agent.researched", {})
                 record = await self.repository.save(
                     record,
-                    stage=RunStage.STRATEGIZING,
+                    stage=RunStage.STRATEGY_READY,
                     artifact_name="research",
                     artifact=output.model_dump(mode="json"),
                 )
-            elif stage == RunStage.STRATEGIZING:
+            elif stage == RunStage.STRATEGY_READY:
+                record = await self.repository.save(record, stage=RunStage.STRATEGIZING)
                 output = await self.runtime.strategize(
                     record.source_text,
                     record.artifacts["frame"],
@@ -85,16 +105,18 @@ class CaseService:
                     artifact_name="strategy",
                     artifact=output.model_dump(mode="json"),
                 )
-            elif stage == RunStage.BUILDING:
+            elif stage == RunStage.BUILD_READY:
+                record = await self.repository.save(record, stage=RunStage.BUILDING)
                 output = await self.runtime.build(record.source_text, record.artifacts)
                 await self.repository.audit(case_id, "agent.built", {})
                 record = await self.repository.save(
                     record,
-                    stage=RunStage.DEFENDING,
+                    stage=RunStage.DEFENSE_READY,
                     artifact_name="build",
                     artifact=output.model_dump(mode="json"),
                 )
-            elif stage == RunStage.DEFENDING:
+            elif stage == RunStage.DEFENSE_READY:
+                record = await self.repository.save(record, stage=RunStage.DEFENDING)
                 output = await self.runtime.defend(record.source_text, record.artifacts)
                 await self.repository.audit(case_id, "agent.defended", {})
                 record = await self.repository.save(
@@ -129,9 +151,9 @@ class CaseService:
         record = await self.repository.get(case_id)
         stage = RunStage(record.stage)
         transitions: dict[int, tuple[RunStage, RunStage, RunStage]] = {
-            1: (RunStage.AWAITING_GATE_1, RunStage.RESEARCHING, RunStage.CREATED),
-            2: (RunStage.AWAITING_GATE_2, RunStage.BUILDING, RunStage.STRATEGIZING),
-            3: (RunStage.AWAITING_GATE_3, RunStage.COMPLETED, RunStage.BUILDING),
+            1: (RunStage.AWAITING_GATE_1, RunStage.RESEARCH_READY, RunStage.CREATED),
+            2: (RunStage.AWAITING_GATE_2, RunStage.BUILD_READY, RunStage.STRATEGY_READY),
+            3: (RunStage.AWAITING_GATE_3, RunStage.COMPLETED, RunStage.BUILD_READY),
         }
         if gate_number not in transitions:
             raise InvalidTransitionError("Gate number must be 1, 2, or 3")

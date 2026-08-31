@@ -10,10 +10,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from caseflow.config import Settings, get_settings
 from caseflow.db import get_session, init_db
-from caseflow.domain import AIPolicy, CaseView, GateDecision
+from caseflow.domain import AIPolicy, CaseView, GateDecision, JobView
 from caseflow.errors import CaseBusyError, InvalidTransitionError, PolicyViolationError
 from caseflow.logging import configure_logging
-from caseflow.repository import CaseNotFoundError, CaseRepository
+from caseflow.repository import (
+    CaseNotFoundError,
+    CaseRepository,
+    JobNotFoundError,
+)
 from caseflow.runtime import OpenAIAgentRuntime
 from caseflow.security import require_api_key
 from caseflow.service import CaseService
@@ -38,14 +42,10 @@ async def service_dependency(
     session: Annotated[AsyncSession, Depends(get_session)],
     settings: Annotated[Settings, Depends(get_settings)],
 ) -> CaseService:
-    return CaseService(
-        CaseRepository(session),
-        OpenAIAgentRuntime(settings),
-    )
+    return CaseService(CaseRepository(session), OpenAIAgentRuntime(settings))
 
 
 Service = Annotated[CaseService, Depends(service_dependency)]
-Protected = Annotated[None, Depends(require_api_key)]
 
 
 @app.get("/health/live")
@@ -93,11 +93,25 @@ async def get_case(case_id: str, service: Service) -> CaseView:
 
 @app.post(
     "/v1/cases/{case_id}/advance",
-    response_model=CaseView,
+    response_model=JobView,
+    status_code=status.HTTP_202_ACCEPTED,
     dependencies=[Depends(require_api_key)],
 )
-async def advance_case(case_id: str, service: Service) -> CaseView:
-    return await service.advance(case_id)
+async def advance_case(case_id: str, service: Service) -> JobView:
+    return await service.enqueue(case_id)
+
+
+@app.get(
+    "/v1/jobs/{job_id}",
+    response_model=JobView,
+    dependencies=[Depends(require_api_key)],
+)
+async def get_job(
+    job_id: str,
+    session: Annotated[AsyncSession, Depends(get_session)],
+) -> JobView:
+    repository = CaseRepository(session)
+    return repository.job_to_view(await repository.get_job(job_id))
 
 
 @app.post(
@@ -123,8 +137,9 @@ async def get_audit(case_id: str, service: Service) -> list[dict[str, object]]:
 
 
 @app.exception_handler(CaseNotFoundError)
-async def not_found_handler(_, exc: CaseNotFoundError):
-    return _problem(404, "Case not found", str(exc))
+@app.exception_handler(JobNotFoundError)
+async def not_found_handler(_, exc: LookupError):
+    return _problem(404, "Resource not found", str(exc))
 
 
 @app.exception_handler(InvalidTransitionError)

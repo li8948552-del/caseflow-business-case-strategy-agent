@@ -34,6 +34,22 @@ class CaseRunRecord(Base):
         DateTime(timezone=True), default=utcnow, onupdate=utcnow
     )
 
+    __mapper_args__ = {"version_id_col": version}
+
+
+class JobRecord(Base):
+    __tablename__ = "jobs"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    case_id: Mapped[str] = mapped_column(String(36), index=True, nullable=False)
+    status: Mapped[str] = mapped_column(String(20), index=True, nullable=False)
+    attempts: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    error: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow, onupdate=utcnow
+    )
+
 
 class AuditEventRecord(Base):
     __tablename__ = "audit_events"
@@ -46,11 +62,7 @@ class AuditEventRecord(Base):
 
 
 settings = get_settings()
-engine = create_async_engine(
-    settings.database_url,
-    pool_pre_ping=True,
-    echo=False,
-)
+engine = create_async_engine(settings.database_url, pool_pre_ping=True, echo=False)
 SessionFactory = async_sessionmaker(engine, expire_on_commit=False)
 
 

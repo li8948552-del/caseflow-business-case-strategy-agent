@@ -18,13 +18,24 @@ class RunStage(StrEnum):
     CREATED = "created"
     FRAMING = "framing"
     AWAITING_GATE_1 = "awaiting_gate_1"
+    RESEARCH_READY = "research_ready"
     RESEARCHING = "researching"
+    STRATEGY_READY = "strategy_ready"
     STRATEGIZING = "strategizing"
     AWAITING_GATE_2 = "awaiting_gate_2"
+    BUILD_READY = "build_ready"
     BUILDING = "building"
+    DEFENSE_READY = "defense_ready"
     DEFENDING = "defending"
     AWAITING_GATE_3 = "awaiting_gate_3"
     COMPLETED = "completed"
+    FAILED = "failed"
+
+
+class JobStatus(StrEnum):
+    QUEUED = "queued"
+    RUNNING = "running"
+    SUCCEEDED = "succeeded"
     FAILED = "failed"
 
 
@@ -105,6 +116,16 @@ class CaseView(BaseModel):
     ai_policy: AIPolicy
     version: int
     artifacts: dict[str, Any]
+    error: str | None
+    created_at: datetime
+    updated_at: datetime
+
+
+class JobView(BaseModel):
+    id: str
+    case_id: str
+    status: JobStatus
+    attempts: int
     error: str | None
     created_at: datetime
     updated_at: datetime
