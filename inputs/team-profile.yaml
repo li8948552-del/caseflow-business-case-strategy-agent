@@ -1,0 +1,14 @@
+members:
+  - name: "Hexin"
+    strengths: ["problem structuring", "analysis", "storyline"]
+    availability: "TODO"
+  - name: "Teammate 2"
+    strengths: ["finance", "accounting", "economics"]
+    availability: "TODO"
+  - name: "Teammate 3"
+    strengths: ["research", "industry knowledge"]
+    availability: "TODO"
+  - name: "Teammate 4"
+    strengths: ["presentation", "visual design"]
+    availability: "TODO"
+

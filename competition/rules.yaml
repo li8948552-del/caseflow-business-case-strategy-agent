@@ -1,0 +1,23 @@
+project_title: "CaseFlow — Business Case Competition Strategy Agent"
+competition_name: "TODO"
+case_name: "TODO"
+case_release_at: "TODO"
+submission_deadline: "TODO"
+timezone: "Australia/Sydney"
+team_size: 4
+
+deliverable:
+  format: "PPTX or PDF"
+  max_slides: null
+  appendix_allowed: null
+  presentation_minutes: null
+  qa_minutes: null
+
+ai_policy:
+  status: "UNKNOWN" # ALLOWED | RESTRICTED | PROHIBITED | UNKNOWN
+  citation_required: null
+  disclosure_required: null
+  notes: "使用前以当届官方比赛规则为准。"
+
+hard_constraints: []
+required_questions: []

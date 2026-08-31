@@ -1,0 +1,16 @@
+gates:
+  1:
+    name: "Problem framing approved"
+    approved: false
+    approved_by: null
+    approved_at: null
+  2:
+    name: "Recommendation approved"
+    approved: false
+    approved_by: null
+    approved_at: null
+  3:
+    name: "Submission approved"
+    approved: false
+    approved_by: null
+    approved_at: null

@@ -1,0 +1,9 @@
+__pycache__/
+*.pyc
+.DS_Store
+inputs/case-brief/*
+!inputs/case-brief/.gitkeep
+deliverables/*.pptx
+deliverables/*.pdf
+deliverables/*.xlsx
+

@@ -1,0 +1,32 @@
+scale:
+  min: 1
+  max: 5
+
+criteria:
+  - id: problem_definition
+    name: "问题定义"
+    weight: 15
+    pass_condition: "明确回答题目，并识别根因而不是症状"
+  - id: insight_and_evidence
+    name: "洞察与证据"
+    weight: 20
+    pass_condition: "关键结论有可靠来源，推理链可追踪"
+  - id: strategic_quality
+    name: "战略质量"
+    weight: 20
+    pass_condition: "建议具体、有差异化且与分析一致"
+  - id: financial_viability
+    name: "财务与价值"
+    weight: 15
+    pass_condition: "价值、成本和敏感性可复算"
+  - id: implementation
+    name: "实施可行性"
+    weight: 15
+    pass_condition: "有阶段、负责人、KPI、依赖和风险缓解"
+  - id: communication
+    name: "表达与答辩"
+    weight: 15
+    pass_condition: "故事线清晰，页数与时长合规，能防守追问"
+
+minimum_weighted_score: 3.5
+
