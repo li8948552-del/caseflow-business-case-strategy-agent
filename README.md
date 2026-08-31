@@ -1,68 +1,100 @@
-# CaseFlow — Business Case Competition Strategy Agent
+# CaseFlow — Enterprise Business Case Strategy Agent
 
-CaseFlow 是一个为 Business Case Competition 设计的轻量级 Agent 工作流。它让 Codex 按固定阶段完成读题、研究、策略比较、财务验证、Deck 故事线和答辩压力测试，并在关键决策处等待团队确认。
+CaseFlow v1 is a durable, human-gated agent system for business case competitions.
+It turns a PDF case brief into a traceable problem frame, evidence base, strategy,
+financial plan, deck outline, rubric review, and judge Q&A.
 
-## 你会得到什么
+> The original lightweight harness is permanently preserved on the
+> [v0.1 branch](https://github.com/li8948552-del/caseflow-business-case-strategy-agent/tree/v0.1).
 
-- 强制区分事实、假设、推论与建议
-- 从 Case Brief 到 Issue Tree 的固定流程
-- 证据台账、假设台账与决策日志
-- 至少三个策略方案的可解释评分
-- 财务模型规范与敏感性检查
-- Ghost Deck、Rubric Review 与 Q&A Bank
-- 三个人工审批 Gate，避免 Agent 擅自决定
+## Why this is an agent
 
-## 5 分钟开始
+CaseFlow v1 observes persisted workflow state, selects the next permitted action,
+invokes specialist agents and tools, validates structured outputs, changes durable
+state, and either continues or pauses for human approval.
 
-1. 把 Case Brief、规则和评分标准放进 `inputs/case-brief/`。
-2. 填写 `competition/rules.yaml` 与 `inputs/team-profile.yaml`。
-3. 在终端运行：
+## Enterprise capabilities
 
-```bash
-cd CaseFlow
-python3 tools/run_workflow.py init --case-name "Competition Case"
-python3 tools/run_workflow.py status
-```
+- FastAPI service with PDF upload and API-key authentication
+- PostgreSQL/SQLite persistence and Alembic migrations
+- Durable background jobs and restart-safe workflow stages
+- OpenAI Agents SDK with typed Pydantic outputs and web search
+- Optimistic locking and duplicate-job prevention
+- Three non-bypassable human approval gates
+- Audit trail for agent actions and decisions
+- JSON structured logging, retries, input limits, and AI-policy enforcement
+- Docker Compose, non-root container, unit tests, and GitHub Actions CI
 
-4. 在 Codex 中输入：
+## Workflow
 
 ```text
-请阅读 AGENTS.md，从 Phase 1 开始。读取 inputs/case-brief/ 的全部材料，只完成 workspace/01_case_facts.md 和 workspace/02_issue_tree.md。完成后停止在 Gate 1，不要继续研究。
+Upload case
+  → Frame
+  → Gate 1
+  → Research
+  → Strategy
+  → Gate 2
+  → Finance / implementation / ghost deck
+  → Red-team defense
+  → Gate 3
+  → Complete
 ```
 
-5. 团队确认问题定义后：
+## Quick start with Docker
 
 ```bash
-python3 tools/run_workflow.py gate 1 --approve --by "Team"
+git clone https://github.com/li8948552-del/caseflow-business-case-strategy-agent.git
+cd caseflow-business-case-strategy-agent
+cp .env.example .env
+export OPENAI_API_KEY="your-key"
+docker compose up --build
 ```
 
-## 流程与检查点
+API documentation: [http://localhost:8000/docs](http://localhost:8000/docs)
 
-| 阶段 | 主要产物 | 人工检查点 |
-|---|---|---|
-| Phase 1 Frame | Case Facts、Issue Tree、Day-1 Hypotheses | Gate 1：问题定义 |
-| Phase 2 Research | Research Plan、Evidence Ledger、Assumptions | — |
-| Phase 3 Decide | Strategy Options、推荐方案 | Gate 2：最终方向 |
-| Phase 4 Build | 财务模型、Ghost Deck、实施方案 | — |
-| Phase 5 Defend | Red Team、Rubric Review、Q&A | Gate 3：提交批准 |
-
-## 常用命令
+Create a case:
 
 ```bash
-python3 tools/run_workflow.py status
-python3 tools/run_workflow.py check
-python3 tools/run_workflow.py gate 1 --approve --by "Hexin"
-python3 tools/run_workflow.py gate 2 --approve --by "Team"
-python3 tools/run_workflow.py gate 3 --approve --by "Team"
-python3 tools/run_workflow.py gate 2 --reopen --by "Team"
+curl -X POST http://localhost:8000/v1/cases \
+  -H "X-API-Key: change-me-before-deploying" \
+  -F 'name=Oliver Wyman Practice Case' \
+  -F 'ai_policy=allowed' \
+  -F 'case_file=@Case Brief.pdf'
 ```
 
-`check` 检查结构、规则、证据和数字追踪性，但不会替代人工判断。
+Queue the next stage:
 
-## 比赛前彩排
+```bash
+curl -X POST http://localhost:8000/v1/cases/CASE_ID/advance \
+  -H "X-API-Key: change-me-before-deploying"
+```
 
-建议先用往届公开 Case 完整跑一次：记录每阶段耗时、无用输出、缺失证据和评委最容易攻击的地方。正式比赛前，只优化真实痛点，不扩张成网站或复杂多 Agent 系统。
+Approve a gate:
 
-## AI 使用边界
+```bash
+curl -X POST http://localhost:8000/v1/cases/CASE_ID/gates/1 \
+  -H "X-API-Key: change-me-before-deploying" \
+  -H "Content-Type: application/json" \
+  -d '{"approved":true,"decided_by":"Hexin","reason":"Issue tree approved"}'
+```
 
-如果 `competition/rules.yaml` 中的 `ai_policy.status` 仍为 `UNKNOWN` 或为 `PROHIBITED`，校验会失败。正式使用前必须以当届官方规则为准。
+## Local development
+
+```bash
+cp .env.example .env
+python -m venv .venv
+source .venv/bin/activate
+make install
+make run
+```
+
+Run `make worker` in a second terminal. Run `make lint test` before opening a PR.
+
+## Repository versions
+
+- `v0.1`: original Codex + Markdown harness, preserved and usable without API code.
+- `feature/enterprise-agent-v1`: enterprise implementation under review.
+- `main`: updated only after CI passes.
+
+See [architecture](docs/architecture.md), [operations](docs/runbook.md), and
+[security](SECURITY.md).
