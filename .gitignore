@@ -11,3 +11,7 @@ inputs/case-brief/*
 deliverables/*.pptx
 deliverables/*.pdf
 deliverables/*.xlsx
+benchmarks/raw/*
+!benchmarks/raw/.gitkeep
+benchmarks/exports/*
+!benchmarks/exports/.gitkeep

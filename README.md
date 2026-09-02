@@ -24,6 +24,7 @@ state, and either continues or pauses for human approval.
 - Audit trail for agent actions and decisions
 - JSON structured logging, retries, input limits, and AI-policy enforcement
 - Docker Compose, non-root container, unit tests, and GitHub Actions CI
+- Versioned past-deck benchmark catalog with blind calibration and holdout splits
 
 ## Workflow
 
@@ -89,6 +90,22 @@ make run
 ```
 
 Run `make worker` in a second terminal. Run `make lint test` before opening a PR.
+
+## Past-deck evaluation benchmark
+
+CaseFlow includes a link-only catalog of 13 officially ranked past decks. It keeps
+reference examples separate from calibration, blind holdout, and recent challenge
+sets so improvements can be measured without training on the test answers.
+
+```bash
+python tools/benchmark_catalog.py validate
+python tools/benchmark_catalog.py list --split calibration
+python tools/benchmark_catalog.py export-blind \
+  --split holdout --output benchmarks/exports/holdout.json
+```
+
+See [the benchmark protocol](benchmarks/README.md). Third-party deck files are not
+redistributed in this public repository.
 
 ## Repository versions
 
